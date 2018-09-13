@@ -1,6 +1,7 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "ZipLib\ZipFile.h"
 #include "ziplib\streams\memstream.h"
@@ -8,21 +9,48 @@
 
 namespace fs = std::experimental::filesystem;
 
-int main()
+std::vector<std::string> list_of_archive(const fs::path& archive_path)
 {
-	fs::path p = fs::current_path();
-	auto abs_p = fs::absolute(p);
+	std::vector<std::string> results;
 
-	std::cout << abs_p << std::endl;
+	std::cout << "opening archive <" << archive_path.string() << "> " << std::endl;
+	if (!fs::exists(archive_path))
+	{
+		std::cout << "archive does not exits" << std::endl;
+		return results;
+	}
+
 	try
 	{
-		ZipFile::AddFile("test_zf.zip", "test_doc0.txt", LzmaMethod::Create());
-		ZipFile::AddFile("test_zf.zip", "test_doc1.txt", LzmaMethod::Create());
+		auto archive = ZipFile::Open(archive_path.string());
+
+		std::cout << "archive count: " << archive->GetEntriesCount() << std::endl;
+
+		for (int i = 0; i < archive->GetEntriesCount(); ++i)
+		{
+			auto entry = archive->GetEntry(i);
+			if (entry)
+				results.push_back(entry->GetFullName());
+		}
 	}
 	catch (std::exception& e)
 	{
-		std::cout <<  "- An exception occured: " << e.what() << "\n";
+		std::cout << e.what() << std::endl;
 	}
+
+	return results;
+}
+
+int main()
+{
+	fs::path p = fs::current_path();
+	p += "\\Japanese_Basic_Hiragana.apkg";
+
+	auto results = list_of_archive(p);
+
+	for (const auto& e : results)
+		std::cout << e << std::endl;
+	
 
 	std::cin.get();
 	return 0;
